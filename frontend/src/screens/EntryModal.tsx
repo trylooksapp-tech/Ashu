@@ -53,7 +53,7 @@ export function EntryModal({ type, settings, onClose, onSaved, onError }: any) {
             category: form.category,
             variant: form.variant || "Regular",
             options,
-            quality_required: !!form.quality_required,
+            quality_required: false,
           }),
         });
       }
@@ -154,11 +154,6 @@ export function EntryModal({ type, settings, onClose, onSaved, onError }: any) {
                     <TextField value={form.single_price} onChangeText={(v: string) => set("single_price", v)} placeholder="Option price ₹" keyboardType="numeric" />
                   </>
                 )}
-                <Text style={s.step}>QUALITY REQUIRED?</Text>
-                <View style={s.optionRow}>
-                  {pill("No", !form.quality_required, () => set("quality_required", false))}
-                  {pill("Yes (1-10 scale)", !!form.quality_required, () => set("quality_required", true))}
-                </View>
               </>
             )}
 

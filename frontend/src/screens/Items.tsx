@@ -40,7 +40,7 @@ export function Items({ menu, onAdd, onRefresh, onError }: any) {
             <View style={s.rowIcon}><Icon name="silverware-fork-knife" size={20} color={m.active ? C.brand : C.muted} /></View>
             <View style={{ flex: 1 }}>
               <Text style={s.text}>{m.name}{!m.active ? "  ·  (inactive)" : ""}</Text>
-              <Text style={s.muted}>{m.category} · {m.variant}{m.quality_required ? " · quality 1-10" : ""}</Text>
+              <Text style={s.muted}>{m.category} · {m.variant}</Text>
               <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
                 {m.options.map((o: any) => <Text style={s.option} key={o.name}>{o.name} {money(o.price)}</Text>)}
               </View>

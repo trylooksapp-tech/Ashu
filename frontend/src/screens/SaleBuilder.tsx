@@ -5,13 +5,12 @@ import { C, money, today as todayFn } from "@/src/theme";
 import { s, Chip } from "@/src/screens/ui";
 import { api } from "@/src/api";
 
-type CartItem = { item: string; portion: string; quantity: number; price: number; quality?: number };
+type CartItem = { item: string; portion: string; quantity: number; price: number };
 
 export function SaleBuilder({ menu, onClose, onSaved, onError }: any) {
   const [category, setCategory] = useState("All");
   const [selected, setSelected] = useState<any>(null);
   const [option, setOption] = useState<any>(null);
-  const [quality, setQuality] = useState(0);
   const [qty, setQty] = useState(1);
   const [items, setItems] = useState<CartItem[]>([]);
   const [orderType, setOrderType] = useState("Dine-in");
@@ -30,7 +29,6 @@ export function SaleBuilder({ menu, onClose, onSaved, onError }: any) {
   const choose = (m: any) => {
     setSelected(m);
     setOption(m.options[0]);
-    setQuality(m.quality_required ? 5 : 0);
     setQty(1);
   };
 
@@ -43,12 +41,10 @@ export function SaleBuilder({ menu, onClose, onSaved, onError }: any) {
         portion: option.name,
         quantity: qty,
         price: option.price,
-        quality: selected.quality_required ? quality : undefined,
       },
     ]);
     setSelected(null);
     setOption(null);
-    setQuality(0);
     setQty(1);
   };
 
@@ -139,24 +135,6 @@ export function SaleBuilder({ menu, onClose, onSaved, onError }: any) {
                 <Text style={s.selectorTitle}>{selected.name}</Text>
                 <Text style={s.mutedSm}>{selected.category} · {selected.variant}</Text>
 
-                {selected.quality_required && (
-                  <>
-                    <Text style={s.step}>QUALITY (1–10)</Text>
-                    <View style={s.qualityGrid}>
-                      {selected.quality_options.map((n: number) => (
-                        <Pressable
-                          key={n}
-                          style={[s.qualityChip, quality === n && s.chipActive]}
-                          onPress={() => setQuality(n)}
-                          testID={`quality-${n}`}
-                        >
-                          <Text style={[s.chipText, quality === n && s.chipTextActive]}>{n}</Text>
-                        </Pressable>
-                      ))}
-                    </View>
-                  </>
-                )}
-
                 <Text style={s.step}>VARIATION / PORTION</Text>
                 <View style={s.optionRow}>
                   {selected.options.map((o: any) => (
@@ -200,7 +178,7 @@ export function SaleBuilder({ menu, onClose, onSaved, onError }: any) {
                 <View style={s.summaryRow} key={`${i.item}-${idx}`}>
                   <View style={{ flex: 1 }}>
                     <Text style={s.text}>{i.item}</Text>
-                    <Text style={s.muted}>{i.portion} × {i.quantity}{i.quality ? ` · Quality ${i.quality}` : ""}</Text>
+                    <Text style={s.muted}>{i.portion} × {i.quantity}</Text>
                   </View>
                   <Text style={s.amount}>{money(i.price * i.quantity)}</Text>
                   <Pressable onPress={() => removeFromCart(idx)} testID={`remove-${idx}`} hitSlop={8}>
