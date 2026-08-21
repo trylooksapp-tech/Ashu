@@ -10,11 +10,6 @@ export function RawMaterial({ purchases, onAdd, onUsage, onRefresh, onError }: a
   const load = () => api("/stock").then(setStock).catch(() => {});
   useEffect(() => { load(); }, [purchases]);
 
-  const del = async (rid: string) => {
-    try { await api(`/purchases/${rid}`, { method: "DELETE" }); onRefresh(); load(); }
-    catch (e: any) { onError(e.message); }
-  };
-
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollPad}>
       <Title title="Raw materials" sub="Purchases and usage are recorded separately" action="Add purchase" onAction={onAdd} actionTestID="add-purchase-btn" />
@@ -56,12 +51,7 @@ export function RawMaterial({ purchases, onAdd, onUsage, onRefresh, onError }: a
               <Text style={s.muted}>{p.quantity} {p.unit} × {money(p.price)} · {p.date}</Text>
               {p.supplier ? <Text style={s.mutedSm}>Supplier: {p.supplier}</Text> : null}
             </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Text style={s.amount}>{money(p.total)}</Text>
-              <Pressable onPress={() => del(p.record_id)} hitSlop={8} testID={`del-${p.record_id}`}>
-                <Icon name="delete-outline" size={18} color={C.red} />
-              </Pressable>
-            </View>
+            <Text style={s.amount}>{money(p.total)}</Text>
           </View>
         ))
       )}

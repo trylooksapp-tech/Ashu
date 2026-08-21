@@ -23,11 +23,6 @@ export function Sales({ orders, menu, onAdd, onRefresh, onError }: any) {
     .filter((o: any) => o.date === todayFn())
     .reduce((a: number, o: any) => a + (o.net_sales ?? o.subtotal ?? 0), 0);
 
-  const del = async (order_id: string) => {
-    try { await api(`/orders/${order_id}`, { method: "DELETE" }); onRefresh(); }
-    catch (e: any) { onError(e.message); }
-  };
-
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollPad}>
       <View style={s.salesHero}>
@@ -75,12 +70,7 @@ export function Sales({ orders, menu, onAdd, onRefresh, onError }: any) {
                 {o.discount_amount ? ` · disc ${money(o.discount_amount)}` : ""}
               </Text>
             </View>
-            <View style={{ alignItems: "flex-end" }}>
-              <Text style={s.amount}>{money(o.net_sales ?? o.subtotal ?? 0)}</Text>
-              <Pressable onPress={() => del(o.order_id)} hitSlop={8} testID={`del-${o.order_id}`}>
-                <Icon name="delete-outline" size={18} color={C.red} />
-              </Pressable>
-            </View>
+            <Text style={s.amount}>{money(o.net_sales ?? o.subtotal ?? 0)}</Text>
           </View>
         ))
       )}

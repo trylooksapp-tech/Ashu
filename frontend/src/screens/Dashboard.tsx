@@ -24,7 +24,7 @@ export function Dashboard({ d, onAdd, userName }: any) {
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={s.scrollPad}>
       <Text style={s.kicker}>TODAY · {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}</Text>
       <Text style={s.h1}>Namaste{userName ? `, ${userName.split(" ")[0]}` : ""}</Text>
-      <Text style={s.muted}>Here's how Apna Flavour Town is doing.</Text>
+      <Text style={s.muted}>Here&apos;s how Apna Flavour Town is doing.</Text>
 
       <View style={s.grid}>
         {metric("Sales", money(today.sales), "cash-register", `Gross ${money(today.gross)}`)}

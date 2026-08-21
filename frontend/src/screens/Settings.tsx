@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Pressable, ScrollView, TextInput, Modal } from "react-native";
+import { View, Text, Pressable, ScrollView, TextInput } from "react-native";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
 import { C } from "@/src/theme";
 import { s, Title } from "@/src/screens/ui";
@@ -9,7 +9,6 @@ import { useAuth } from "@/src/auth";
 export function Settings({ onError, onRefresh }: any) {
   const { user, signOut } = useAuth();
   const [st, setSt] = useState<any>(null);
-  const [confirm, setConfirm] = useState<"reset" | null>(null);
   const [newCat, setNewCat] = useState<{ [k: string]: string }>({});
 
   const load = () => api("/settings").then(setSt).catch((e) => onError(e.message));
@@ -40,11 +39,6 @@ export function Settings({ onError, onRefresh }: any) {
       await api("/settings", { method: "PUT", body: JSON.stringify(payload) });
       onRefresh?.();
     } catch (e: any) { onError(e.message); }
-  };
-
-  const resetData = async () => {
-    try { await api("/settings/reset", { method: "POST" }); onRefresh?.(); setConfirm(null); }
-    catch (e: any) { onError(e.message); }
   };
 
   const categoryEditor = (label: string, key: string) => (
@@ -106,32 +100,6 @@ export function Settings({ onError, onRefresh }: any) {
       <Pressable style={s.save} onPress={save} testID="save-settings">
         <Text style={s.primaryText}>Save settings</Text>
       </Pressable>
-
-      <View style={[s.card, { borderColor: C.red }]}>
-        <Text style={s.cardTitle}>Danger zone</Text>
-        <Text style={s.muted}>Reset all sales, purchases, usage and expense records. Menu items and settings are kept.</Text>
-        <Pressable style={[s.dangerBtn, { marginTop: 12, alignSelf: "flex-start" }]} onPress={() => setConfirm("reset")} testID="reset-btn">
-          <Icon name="trash-can-outline" size={16} color={C.red} />
-          <Text style={s.dangerText}>Reset transactions</Text>
-        </Pressable>
-      </View>
-
-      <Modal transparent animationType="fade" visible={confirm === "reset"} onRequestClose={() => setConfirm(null)}>
-        <View style={s.overlay}>
-          <View style={[s.sheet, { minHeight: 200 }]}>
-            <Text style={s.h2}>Are you sure?</Text>
-            <Text style={s.muted}>All sales, purchases, stock usage and expenses will be permanently deleted.</Text>
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 18 }}>
-              <Pressable style={[s.secondaryBtn, { flex: 1, justifyContent: "center" }]} onPress={() => setConfirm(null)} testID="cancel-reset">
-                <Text style={s.secondaryText}>Cancel</Text>
-              </Pressable>
-              <Pressable style={[s.dangerBtn, { flex: 1, justifyContent: "center" }]} onPress={resetData} testID="confirm-reset">
-                <Text style={s.dangerText}>Yes, delete all</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </ScrollView>
   );
 }
