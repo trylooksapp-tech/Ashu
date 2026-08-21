@@ -1,0 +1,162 @@
+{
+  "app_name": "AFT - Apna Flavour Town",
+  "personality": "7 Dark-First Utility DARK (with warm earth terracotta/amber accents for restaurant operations & finance)",
+  "personality_one_liner": "Command-center precision for Apna Flavour Town, pairing deep obsidian surfaces with warm terracotta accents for fast POS orders, inventory control, and profit clarity.",
+  "color": {
+    "surface": "#12100E",
+    "onSurface": "#F7F4F0",
+    "surfaceSecondary": "#1D1A16",
+    "onSurfaceSecondary": "#E6E2DC",
+    "surfaceTertiary": "#282420",
+    "onSurfaceTertiary": "#C4BFB6",
+    "surfaceInverse": "#FAF7F5",
+    "onSurfaceInverse": "#12100E",
+    "brand": "#C85A32",
+    "brandPrimary": "#D96B3E",
+    "onBrandPrimary": "#FFFDF9",
+    "brandSecondary": "#A64620",
+    "onBrandSecondary": "#F7F4F0",
+    "brandTertiary": "#3D261D",
+    "onBrandTertiary": "#EAD5CC",
+    "success": "#3D6B4E",
+    "onSuccess": "#E4F2E7",
+    "warning": "#B87A2E",
+    "onWarning": "#FDF3E3",
+    "error": "#B23B3B",
+    "onError": "#FCE8E8",
+    "info": "#3A6578",
+    "onInfo": "#E3F0F5",
+    "border": "#2E2824",
+    "borderStrong": "#4A3E38",
+    "divider": "#211D19"
+  },
+  "typography": {
+    "displayFontFamily": "BarlowCondensed_600SemiBold",
+    "textFontFamily": "PlusJakartaSans_400Regular",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous touch spacing for restaurant POS operators, compact density for data lists and stock items",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "0",
+  "navigation": "bottom_tabs",
+  "icon_set": "MaterialCommunityIcons",
+  "glassmorphism": {
+    "enabled": true,
+    "do's": [
+      "Use frosted glass on sticky headers over scrolling POS lists",
+      "Use translucent tinted glass on bottom tab bar and sheet headers",
+      "Maintain WCAG AAA contrast with solid tinted base layers"
+    ],
+    "dont's": [
+      "Never apply glass to dense inventory rows or form inputs",
+      "Never use pure transparent bars over scrolling content"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Dashboard",
+      "purpose": "At-a-glance financial and operational health for Apna Flavour Town today.",
+      "states": {
+        "loading": "Centered warm amber spinner over obsidian canvas",
+        "empty": "Warm terracotta icon, 'No sales or stock data recorded for today yet', primary CTA 'Start New Order'",
+        "error": "Readable warning banner, 'Failed to sync with MongoDB server', Retry button"
+      },
+      "layout": "Sticky header with AFT brand mark and Google Auth status; top metrics cards for Today's Sales (tips excluded), Net Profit, Active Orders, and Low Stock count; Quick Action buttons for New Order, Stock Check, and Receipt Capture; recent orders and quick stock health feed."
+    },
+    {
+      "name": "Orders",
+      "purpose": "Fast dine-in and home-delivery order creation, payment settlement, and order history.",
+      "states": {
+        "loading": "Skeleton card rows with warm pulse",
+        "empty": "Shopping bag icon, 'No orders found for selected filter', primary CTA 'Create Dine-In Order'",
+        "error": "Error banner with Retry button"
+      },
+      "layout": "Segmented tabs for Active, Dine-In, Delivery, and History; search bar with filter chips; order cards displaying table/customer, items list, subtotal, tips (excluded from profit), payment method badge, and action buttons."
+    },
+    {
+      "name": "Raw Materials",
+      "purpose": "Raw material item master, stock level tracking, purchases CRUD, and simple stock usage logging.",
+      "states": {
+        "loading": "Loading list skeletons",
+        "empty": "Package icon, 'No raw materials added to inventory', primary CTA 'Add Raw Material Item'",
+        "error": "Error banner with Retry"
+      },
+      "layout": "Category tabs and low-stock warning banner; inventory item cards showing unit (kg, pcs, litres), current stock vs threshold, unit cost, and quick stock usage/purchase buttons; modal for adding stock purchases and logging daily usage."
+    },
+    {
+      "name": "Menu Items",
+      "purpose": "Sales item master with preloaded AFT selling items and editable portion prices.",
+      "states": {
+        "loading": "Loading menu grid skeletons",
+        "empty": "Utensils icon, 'No menu items configured', primary CTA 'Reset Preloaded Menu'",
+        "error": "Error banner with Retry"
+      },
+      "layout": "Category filter chips (Starters, Main Course, Breads, Beverages, Desserts); grid of item cards with title, portion price, recipe linkage, and inline price edit capability."
+    },
+    {
+      "name": "Expenses & Reports",
+      "purpose": "Other expenses tracking, receipt photo capture, daily/monthly/custom financial reports, and CSV/PDF export.",
+      "states": {
+        "loading": "Loading report charts and summaries",
+        "empty": "Document icon, 'No financial data for selected date range', primary CTA 'Log Expense'",
+        "error": "Error banner with Retry"
+      },
+      "layout": "Tabbed view for Expenses (with receipt photo capture upload) and Reports (Profit & Loss, Sales breakdown, Tax, Net Profit with tips excluded); Date range picker and CSV/PDF export action buttons."
+    },
+    {
+      "name": "Settings",
+      "purpose": "Google authentication status, database sync, store profile, and preloaded menu resets.",
+      "states": {
+        "loading": "Loading settings profile",
+        "empty": "Not applicable",
+        "error": "Error banner"
+      },
+      "layout": "Google Login card with managed authentication state; store profile (Apna Flavour Town / स्वाद की नई दुनिया); data persistence status indicator; CSV/PDF export utility links; menu reset action."
+    }
+  ],
+  "images": {
+    "aft_hero": {
+      "url": "https://images.unsplash.com/photo-1727404746799-253aa9a8ace6?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "dark": "https://images.unsplash.com/photo-1727404746799-253aa9a8ace6?crop=entropy&cs=srgb&fm=jpg&q=85",
+      "alt": "Gourmet Indian cuisine flat lay in warm earthy tones"
+    },
+    "restaurant_interior": {
+      "url": "https://images.unsplash.com/photo-19250721?auto=format&fit=crop&q=85",
+      "dark": "https://images.unsplash.com/photo-9250721?auto=format&fit=crop&q=85",
+      "alt": "Rust and dark amber restaurant ambiance"
+    }
+  },
+  "instructions_to_main_agent": "Ensure all persistent MongoDB operations sync reliably through FastAPI backend. Verify that tips are strictly excluded from sales and net profit calculations across all reports and dashboards. Implement the exact preloaded AFT menu items with editable portion prices. Provide receipt photo capture and CSV/PDF export tools. Use clean text-based AFT brand mark for Apna Flavour Town (स्वाद की नई दुनिया). Strictly adhere to the Dark-First Utility Dark personality with warm earth terracotta accents."
+}

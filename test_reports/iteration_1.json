@@ -1,0 +1,33 @@
+{
+  "summary": "Validated live mobile preview, dashboard branding, menu preload, sale modal, and core persistence/accounting APIs. Backend regression passed; several requested production flows are not implemented.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "PUT /api/menu/{item_id}", "issue": "Update replaces the document fields without preserving kind='menu'; subsequent GET /api/menu filters it out, so edited items disappear.", "priority": "HIGH"}
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {"flow": "Create sale", "issue": "UI always submits exactly one item; requested multiple-item order entry is unavailable.", "affected_testIDs": []},
+      {"flow": "Exports", "issue": "No export controls are rendered; backend only exposes CSV and no PDF endpoint.", "affected_testIDs": []},
+      {"flow": "Receipt capture", "issue": "No camera/photo picker or receipt upload flow is present.", "affected_testIDs": []},
+      {"flow": "Authentication/settings", "issue": "No Google login or Settings screen is present.", "affected_testIDs": []},
+      {"flow": "Menu management", "issue": "Items screen has add only; no edit/delete confirmation UI to use the menu PUT/DELETE APIs.", "affected_testIDs": []}
+    ],
+    "design_issues": [
+      {"screen": "Reports", "issues": ["Screen is hard-coded to current month and has no date-range controls or export actions."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_aft_regression.py", "/app/test_reports/pytest/pytest_results.xml", "/app/test_reports/screens/home.png", "/app/test_reports/screens/items.png"],
+  "action_items": ["Preserve kind='menu' in PUT /api/menu/{item_id} and verify edited item remains listed.", "Implement multi-item sale entry with portion selection, receipt capture, PDF/CSV export, reports date range, Google login/settings, and edit/delete confirmations."],
+  "critical_code_review_comments": ["Frontend reads EXPO_PUBLIC_BACKEND_URL, while the environment contract specifies EXPO_BACKEND_URL; align naming or provide a deliberate compatibility mapping.", "Interactive controls do not expose testID/data-testid attributes, reducing reliable automated coverage."],
+  "updated_files": ["/app/backend/tests/test_aft_regression.py", "/app/test_reports/iteration_1.json"],
+  "success_rate": {"backend": "100% (1/1 regression test)", "frontend": "75% (preview/navigation/modal/menu checks passed; requested missing flows unresolved)"},
+  "seed_data_creation": "Created and deleted TEST-prefixed temporary order, purchase, and expense for regression verification.",
+  "retest_needed": true,
+  "should_call_test_agent_after_fix": true,
+  "context_for_next_testing_agent": "Live preview is http://localhost:3000; backend URL is configured via EXPO_PUBLIC_BACKEND_URL. Existing preview data included orders, but temporary test records were cleaned up.",
+  "rca_of_issue": "Menu PUT builds a replacement field dictionary from the Pydantic model and omits the discriminator used by GET /menu's kind='menu' filter. Reproduce by PUT an existing item, then GET /api/menu; the item is absent. Frontend gaps are structural: index.tsx contains only six tabs and a single-item EntryModal, with no receipt, export, auth, settings, or edit controls."
+}

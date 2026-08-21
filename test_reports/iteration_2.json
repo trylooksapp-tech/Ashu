@@ -1,0 +1,28 @@
+{
+  "summary": "Regression-tested public AFT APIs and mobile Expo UI. Core persistence, multi-item-capable order API, tips-excluded accounting, navigation, and sale modal pass; Reports date editing causes a React red screen.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Reports", "issue": "Changing the custom date range triggers an uncaught React error: 'destroy is not a function', rendering the red error screen.", "testID": "Reports date inputs", "priority": "HIGH"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Settings/auth", "issues": ["No Settings navigation or Google login/status UI is present."]},
+      {"screen": "Reports", "issues": ["PDF export control is absent; only CSV export buttons are present."]}
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": ["/app/backend/tests/test_aft_regression.py", "/app/test_reports/pytest/pytest_results.xml", "/app/test_reports/screens/iteration2-mobile.png"],
+  "action_items": ["Fix Reports useEffect cleanup: do not return the Promise from run() as an effect cleanup; use an async function inside the effect.", "Add the requested Settings screen and managed Google login/status flow.", "Add PDF export UI and a functioning PDF endpoint/export flow."],
+  "critical_code_review_comments": ["Reports defines useEffect(run,[start,end]) while run returns api(...).then(...); React treats the returned Promise as cleanup, causing 'destroy is not a function' on date changes.", "Menu PUT persistence is fixed, but the mobile Items screen still has no edit/delete controls."],
+  "updated_files": ["/app/test_reports/iteration_2.json"],
+  "success_rate": {"backend": "100% (1/1 regression test)", "frontend": "75% (navigation/sale modal pass; Reports date flow fails)"},
+  "seed_data_creation": "Created and cleaned TEST-prefixed regression records for order, purchase, and expense APIs.",
+  "retest_needed": true,
+  "should_call_test_agent_after_fix": true,
+  "context_for_next_testing_agent": "Test credentials file exists but contains no credentials; auth testing was not possible. Public endpoint is configured in frontend/.env as EXPO_PUBLIC_BACKEND_URL.",
+  "rca_of_issue": "Reproduction: open Reports, edit either date input. The component re-renders and React invokes the value returned by useEffect; because run returns a Promise from api(...).then(setR), React attempts to call it as destroy(). Mitigation: useEffect(() => { let active=true; (async()=>{const data=await api(...); if(active)setR(data)})(); return ()=>{active=false}; }, [start,end])."
+}
