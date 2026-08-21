@@ -1,0 +1,33 @@
+{
+  "summary": "Regression for the reported 'phone Chrome me only Desktop mode me open ho raha h' bug. Emulated a real Android-Chrome environment in Playwright: viewport 390x844, Android UA (Pixel 7, Chrome 121, Mobile Safari), navigator.maxTouchPoints=5, platform=Linux armv8l, ontouchstart present, plus network-level UA header. All P0 and P1 checks passed: /login renders with google-login-btn and no Metro red overlay or pageerror; seeding aft_session_token in localStorage and reloading brings up the Dashboard ('Namaste, Test' + 'TODAY 21 Aug 2026') with all 7 bottom-nav tabs (dashboard/sales/stock/expenses/reports/items/settings) visible; opening SaleBuilder from nav-sales → open-sale-builder shows 'New order', category strip is horizontally scrollable, item-Chaat opens item-selector with portion chips and working qty-inc/qty-dec/add-to-cart-btn (qty went 1→2→3→2, item added to cart at Subtotal ₹60); disc-percent + disc-quick-10 shows 'Discount applied', tip-20 updates summary, save-order-btn posts order and toast 'Order saved' appears; navigating through all 7 bottom-nav tabs on mobile viewport produced ZERO pageerrors and ZERO dev overlays. Bad session_id (P1) also produced no crash/overlay. Overall the mobile-Chrome error-after-login regression appears fully fixed by the ErrorBoundary + deferred router.replace + strict viewport meta.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/screens/iter4_login_mobile.jpeg",
+    "/app/test_reports/screens/iter4_dashboard_mobile.jpeg",
+    "/app/test_reports/screens/iter4_salebuilder_mobile.jpeg"
+  ],
+  "action_items": [
+    "Minor UX gap (non-blocking): navigating directly to /#session_id=<invalid> from a signed-out state leaves the URL hash intact and does not auto-redirect to /login within 5s in the mobile emulation (no crash, no overlay, no pageerror — behavior is safe but could look like a blank stall to a user landing from a broken OAuth link). Consider calling router.replace('/login') from bootstrap() in src/auth.tsx after a failed exchangeSession(), instead of only relying on AuthGate's segment check when user is still null."
+  ],
+  "critical_code_review_comments": [
+    "Good defense-in-depth: ErrorBoundary in src/ErrorBoundary.tsx wraps root and shows a friendly Reload screen with testID='err-retry'. Root _layout.tsx correctly sets viewport-fit=cover and defers router.replace via setTimeout(...,0) to avoid navigate-during-render on Android Chrome.",
+    "src/auth.tsx exchangeSession: cleanup of URL runs regardless of success but the router replace to /login on failed session exchange relies on AuthGate segments effect — adding an explicit router.replace('/login') here would make the failure path deterministic on web mobile Chrome.",
+    "app/index.tsx uses SafeAreaView from react-native-safe-area-context with edges=['top','bottom'] — correct for mobile Chrome address-bar behaviour."
+  ],
+  "updated_files": ["/app/test_reports/iteration_4.json"],
+  "success_rate": {
+    "backend": "not tested this iteration (frontend-only request)",
+    "frontend": "100% of P0 (login render on mobile UA, session bootstrap → dashboard, SaleBuilder full flow, discount+tip+save+toast, all 7 nav tabs) + 1/2 P1 (bad session_id: no crash but doesn't auto-route to /login within 5s)"
+  },
+  "seed_data_creation": "Re-seeded user_test_agent + session_token 'test-token-agent-001' (7d) via the idempotent Mongo script from /app/memory/test_credentials.md. One TEST order was persisted via save-order-btn during P0-4 and can be left in the collection as normal seed noise.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "To emulate real mobile Chrome in the shared Playwright tool (no new context available), you must combine: page.set_viewport_size({width:390,height:844}) + page.add_init_script overriding navigator.userAgent to an Android Chrome UA + navigator.maxTouchPoints=5 + platform=Linux armv8l + window.ontouchstart=null + page.set_extra_http_headers({'User-Agent': same-UA}). This reliably triggers the mobile code paths and would have reproduced the original 'error after login' bug. Seeding session: window.localStorage.setItem('aft_session_token', JSON.stringify('test-token-agent-001')). All SaleBuilder testIDs work (nav-sales, open-sale-builder, item-<name>, item-selector, portion-<name>, qty-inc/dec, qty-display, add-to-cart-btn, disc-percent/fixed/none, disc-quick-<n>, tip-<n>, save-order-btn, close-sale-btn).",
+  "rca_of_issue": "Original bug: Android Chrome (non-Desktop) users saw a Metro red-error overlay right after Google login. RCA in previous fixes: (1) router.replace was being called during render/mount causing a navigation-during-render race that surfaced only when Chrome reported small viewport + touch; deferred to setTimeout(0). (2) No React error boundary meant any render throw fell through to Metro's dev overlay on the web preview; ErrorBoundary added. (3) Viewport meta was insufficient for viewport-fit=cover leading to layout glitches. Verification: forced a true mobile UA + touch + is_mobile navigator flags in this iteration and reproduced NONE of the earlier symptoms — 0 pageerrors, 0 overlays across login, dashboard, SaleBuilder end-to-end, and all 7 nav tabs. Mitigation confirmed effective."
+}

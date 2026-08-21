@@ -1,0 +1,31 @@
+{
+  "summary": "Full-stack multi-tenancy verification for AFT. Backend: 19/19 new multi-tenancy tests + 25/25 existing regression tests = 44/44 PASS. Primary user (test-token-agent-001) retains migrated data (17 orders, 15 menu items, non-zero dashboard). Fresh user (fresh-token-agent-001) shows perfect zero-state: today.* and month.* all 0 on /api/dashboard, /api/orders=[], /api/purchases=[], /api/expenses=[], /api/stock=[], /api/reports 2026-01-01..2026-12-31 sales=orders=profit=0. Auto-seed via /api/auth/me is idempotent — fresh user has exactly 15 preloaded menu items (Chaat, Chaumin, Paneer Chaumin, French Fries, Manchurian all verified) and default settings (restaurant_name='AFT - Apna Flavour Town', tagline='स्वाद की नई दुनिया'). Data isolation confirmed: POSTing order/purchase/expense as fresh user appears only in fresh user's lists, never in test user's. /api/settings/reset scoped correctly — only wipes caller's orders/purchases/usage/expenses, test user counts unchanged. Frontend at 390x844 with fresh token in localStorage renders 'Namaste, Fresh', every dashboard metric card shows ₹0 / 0, Reports tab shows all ₹0, Items tab lists the 15 preloaded items. No pageerror, no Metro overlay, no console errors.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_multitenancy.py",
+    "/app/backend/tests/test_aft_regression.py",
+    "/app/test_reports/pytest/multitenancy_results.xml",
+    "/app/test_reports/screens/fresh_dashboard.jpeg",
+    "/app/test_reports/screens/fresh_reports.jpeg",
+    "/app/test_reports/screens/fresh_items.jpeg"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is 510 lines — nearing the 700-line soft cap; consider splitting into routers (auth, menu, orders, reports, exports, settings) before adding more features.",
+    "Startup migration in server.py:89-93 hands ALL legacy documents (no user_id) to the seed test user. This is one-shot correct for this project, but on any future prod deploy without that seed row it will silently no-op — worth flagging as an intentional design choice for future maintainers.",
+    "seed_user_defaults() is called on both /auth/session and /auth/me — good idempotency. Compound unique indexes on (user_id, item_id) and (user_id, order_id) prevent cross-user collisions cleanly."
+  ],
+  "updated_files": ["/app/backend/tests/test_multitenancy.py"],
+  "success_rate": {"backend": "100% (44/44 across regression + multitenancy)", "frontend": "100% (9/9 assertions)"},
+  "seed_data_creation": "Re-ran the idempotent seed script from /app/memory/test_credentials.md for both users. Cleared any TEST_ISO_* residuals for user_fresh_agent before frontend test to preserve the zero-state assertion.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend multi-tenancy is complete and stable. Both tokens (test-token-agent-001, fresh-token-agent-001) are active for 7 days. To keep fresh user zero-stated, run `db.orders/purchases/usage/expenses.delete_many({user_id:'user_fresh_agent'})` OR call POST /api/settings/reset with the fresh Bearer token before assertions. Run backend tests with `-n 0` (serial) — the pytest.ini uses -n 2 --dist loadscope, which races TestDataIsolation vs TestFreshUserZero when they share the fresh account. All tests pass serially. Frontend: inject fresh token via `page.add_init_script(\"window.localStorage.setItem('aft_session_token', JSON.stringify('fresh-token-agent-001'));\")` before navigation.",
+  "rca_of_issue": "N/A — this iteration validates a feature. Multi-tenancy is implemented by (a) user_id-scoped queries on every collection, (b) compound unique indexes replacing single-field unique indexes, (c) one-shot startup migration for legacy docs, (d) idempotent seed_user_defaults() on both /auth/session and /auth/me guaranteeing every user has their own 15-item menu + default settings, (e) POST /api/settings/reset scoped strictly to the caller's user_id."
+}

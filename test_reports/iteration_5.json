@@ -1,0 +1,23 @@
+{
+  "summary": "Frontend-only regression for SaleBuilder collapse-on-select feature at mobile viewport 390x844. Seeded auth token 'test-token-agent-001' via init script into localStorage as JSON-encoded string. All 6 test cases PASSED: (1) Sale builder opens with 15 preloaded active menu items in the grid, (2) Tapping [item-Chaumin] collapses grid to only the selected Chaumin card and reveals [item-selector] with portion-Half, portion-Full, qty-dec, qty-inc, add-to-cart-btn — label updates to '2 · ITEM · tap again to change', (3) Tapping [item-Chaumin] again restores full 15-item grid and hides the selector, (4) Repeat verified for [item-Paneer Chaumin], (5) Select Chaumin → Full portion → qty-inc x2 (qty=3) → add-to-cart clears selection, brings back all 15 cards, and adds 1 cart line ('3 · ORDER · 1 ITEMS' with remove-0 present), (6) No pageerror or Metro red overlay observed at any step.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "SaleBuilder.tsx is 316 lines — still within limit but growing; consider splitting cart summary, discount, and totals into subcomponents if further features are added.",
+    "The `testID` prefix `item-` is also used for `item-selector` container; the query selector `[data-testid^=\"item-\"]` matches both. Not a functional bug but a naming clash worth noting (e.g. rename container testID to `sale-item-selector` to avoid ambiguity in tests)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not tested)", "frontend": "100% (6/6)"},
+  "seed_data_creation": "Re-ran the idempotent script from /app/memory/test_credentials.md to ensure session token 'test-token-agent-001' exists in user_sessions. Verified 15 active menu items present in DB.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auth: inject localStorage key `aft_session_token` with JSON.stringify('test-token-agent-001') via page.add_init_script BEFORE navigation. Sales tab is reached via get_by_text('Sales'). Sale builder opens via testID `open-sale-builder`. Item cards use testID `item-<name>` (e.g. `item-Chaumin`, `item-Paneer Chaumin`). Portion chips: `portion-Half`, `portion-Full`. Cart line removal: `remove-0`. Note: `item-selector` testID starts with 'item-' so use exact selectors when counting item cards.",
+  "rca_of_issue": "N/A — this iteration validates the fix. Implementation in SaleBuilder.tsx renders `[selected]` (single-element array) when an item is selected and the full filtered menu list otherwise; tapping the currently selected card calls setSelected(null) to restore the grid. Add-to-cart also resets selected/option/qty so the grid returns. Behavior matches spec exactly."
+}

@@ -1,16 +1,36 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
-import { LogBox, View, ActivityIndicator, Text, StyleSheet } from "react-native";
+import { LogBox, View, ActivityIndicator, Text, StyleSheet, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { AuthProvider, useAuth } from "@/src/auth";
 import { C } from "@/src/theme";
+import { ErrorBoundary } from "@/src/ErrorBoundary";
 
 LogBox.ignoreAllLogs(true);
 SplashScreen.preventAutoHideAsync();
+
+// Fix the mobile viewport meta once at boot (better than editing +html.tsx which
+// is a server-render entry). Ensures Chrome Android doesn't zoom or clip.
+if (Platform.OS === "web" && typeof document !== "undefined") {
+  const existing = document.querySelector('meta[name="viewport"]');
+  const content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
+  if (existing) existing.setAttribute("content", content);
+  else {
+    const m = document.createElement("meta");
+    m.setAttribute("name", "viewport");
+    m.setAttribute("content", content);
+    document.head.appendChild(m);
+  }
+  // Allow scrolling in components by not wedging body height at 100vh on mobile.
+  try {
+    document.documentElement.style.height = "100%";
+    document.body.style.margin = "0";
+  } catch {}
+}
 
 function AuthGate() {
   const { user, loading } = useAuth();
@@ -20,8 +40,12 @@ function AuthGate() {
   useEffect(() => {
     if (loading) return;
     const inLogin = segments[0] === "login";
-    if (!user && !inLogin) router.replace("/login");
-    else if (user && inLogin) router.replace("/");
+    // Defer navigation to next tick so we never call router.replace during render/mount.
+    const id = setTimeout(() => {
+      if (!user && !inLogin) router.replace("/login");
+      else if (user && inLogin) router.replace("/");
+    }, 0);
+    return () => clearTimeout(id);
   }, [user, loading, segments, router]);
 
   if (loading) {
@@ -42,12 +66,14 @@ export default function RootLayout() {
   if (!loaded && !error) return null;
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="light" />
-      <AuthProvider>
-        <AuthGate />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <AuthProvider>
+          <AuthGate />
+        </AuthProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

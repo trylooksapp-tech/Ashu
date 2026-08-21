@@ -110,15 +110,26 @@ export function SaleBuilder({ menu, onClose, onSaved, onError }: any) {
               ))}
             </ScrollView>
 
-            <Text style={s.step}>2 · ITEM</Text>
+            <Text style={s.step}>2 · ITEM {selected ? "· tap again to change" : ""}</Text>
             <View style={s.itemGrid}>
-              {menu
-                .filter((m: any) => m.active && (category === "All" || m.category === category))
-                .map((m: any) => (
+              {(selected
+                ? [selected]
+                : menu.filter((m: any) => m.active && (category === "All" || m.category === category))
+              ).map((m: any) => {
+                const isSelected = selected?.item_id === m.item_id;
+                return (
                   <Pressable
                     key={m.item_id}
-                    style={[s.itemCard, selected?.item_id === m.item_id && s.itemCardSelected]}
-                    onPress={() => choose(m)}
+                    style={[s.itemCard, isSelected && s.itemCardSelected, isSelected && { width: "100%" }]}
+                    onPress={() => {
+                      if (isSelected) {
+                        setSelected(null);
+                        setOption(null);
+                        setQty(1);
+                      } else {
+                        choose(m);
+                      }
+                    }}
                     testID={`item-${m.name}`}
                   >
                     <Text style={s.itemName}>{m.name}</Text>
@@ -127,7 +138,8 @@ export function SaleBuilder({ menu, onClose, onSaved, onError }: any) {
                       {m.options.map((o: any) => `${o.name} ${money(o.price)}`).join(" · ")}
                     </Text>
                   </Pressable>
-                ))}
+                );
+              })}
             </View>
 
             {selected && (
