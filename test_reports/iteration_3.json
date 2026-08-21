@@ -1,0 +1,37 @@
+{
+  "summary": "Comprehensive backend + mobile UI regression for AFT after Google Auth + bill-level discount + Settings + PDF refactor. All 25 pytest cases pass (auth gating, discount math for percent/fixed/none, negative-input rejection, stock aggregation, CSV+PDF exports, settings CRUD, legacy-order fallback). Mobile UI end-to-end SaleBuilder flow (Paneer Chaumin → Full → Quality 8 → Qty 3 → 10% discount → Tip ₹20) produced Subtotal ₹240 · Discount ₹24 · Final ₹216 · Collect ₹236 and persisted correctly. Reports shows DISCOUNT metric card and no longer red-screens on date change. Settings page renders with Google-auth status, brand + category editors and Danger Zone reset. No blocker or high-priority issues found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_aft_regression.py",
+    "/app/test_reports/pytest/pytest_results.xml",
+    "/app/test_reports/screens/dashboard.jpeg",
+    "/app/test_reports/screens/salebuilder.jpeg",
+    "/app/test_reports/screens/sb_discount.jpeg",
+    "/app/test_reports/screens/reports.jpeg",
+    "/app/test_reports/screens/settings.jpeg"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "server.py is ~480 lines - still manageable but nearing the 700-line guidance; consider splitting orders/reports/exports into routers as more features land.",
+    "Delivery orders currently apply discount before adding delivery_charge (grand_total = net_sales + tips + delivery_charge); this matches spec and works, verified by unit math."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_aft_regression.py",
+    "/app/test_reports/iteration_3.json"
+  ],
+  "success_rate": {"backend": "100% (25/25)", "frontend": "100% of exercised flows (login gating, dashboard, sale builder, discount+tip, save, sales history, reports date change, PDF export button, settings)"},
+  "seed_data_creation": "Seeded user_test_agent + session token test-token-agent-001 (7d expiry) via mongo script from test_credentials.md; all TEST_-prefixed orders/purchases/usage/expenses and the UI-created order AFT-20260821-9057 were cleaned up afterward.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Auth: seed via /app/memory/test_credentials.md and on web set localStorage['aft_session_token']=JSON.stringify('test-token-agent-001'); on reload the app skips the login screen. Backend base URL comes from frontend/.env EXPO_PUBLIC_BACKEND_URL. testIDs are sparse in the mobile screens (only google-login-btn is present); rely on visible text selectors (kebab-case testIDs promised in the request note are not yet applied to Sale/Reports/Settings). If adding more testIDs, follow request note.",
+  "rca_of_issue": "N/A - no blockers this iteration. Previous iteration_2 Reports red-screen on date change is confirmed FIXED (dates now update the metrics without any uncaught error)."
+}

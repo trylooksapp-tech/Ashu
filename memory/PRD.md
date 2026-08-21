@@ -1,43 +1,53 @@
-# AFT - Apna Flavour Town Restaurant Operations
+# AFT · Apna Flavour Town — Restaurant Operations
 
 ## Problem statement
-Mobile-first restaurant management and accounting for sales, raw-material purchases and usage, other expenses, reports, and editable menu pricing. Tips remain separate from sales and profit.
+Mobile-first restaurant management and accounting for daily sales, raw-material purchases + usage, other expenses, editable menu pricing, discounts and profit reports. Tips are always excluded from sales and profit. Bill-level discount reduces net sales but never touches item prices.
 
 ## Architecture
-- Expo SDK 54 React Native frontend with dark utility UI and terracotta brand accents.
-- FastAPI backend on port 8001 with MongoDB persistence.
-- Collections: menu_items, orders, purchases, usage, expenses.
-- Computed dashboard and date-range report endpoints; CSV export endpoint.
+- Expo SDK 54 React Native (dark utility UI, terracotta brand accents).
+- FastAPI on port 8001 (all routes under /api, MongoDB persistence).
+- Emergent-managed Google Auth (login blocking, 7-day session).
+- reportlab-generated PDF exports; CSV exports for sales / expenses / purchases.
+- Modular frontend: `src/screens/*.tsx` + `src/theme.ts` + `src/api.ts` + `src/auth.tsx`.
 
 ## Personas
-- Restaurant owner/operator entering daily sales and costs from an Android phone.
-- Manager reviewing daily/monthly profitability and item pricing.
+- Restaurant owner recording daily orders / stock / expenses from an Android phone.
+- Manager reviewing daily/monthly profitability and menu pricing.
 
 ## Core requirements (static)
-- AFT branding with Hindi tagline.
-- Editable preloaded menu with portion prices.
-- Persistent CRUD-style transaction entry and accounting calculations.
-- Tips excluded from sales and net profit.
-- Dine-in/delivery and payment tracking.
-- Raw purchases separate from manual usage.
-- Reports with configurable dates and CSV exports.
+- AFT branding with Hindi tagline (editable in Settings).
+- Preloaded 15 menu items with editable portion prices (item price change never affects saved orders).
+- Zero-typing POS: Category → Item → (Quality 1-10) → Portion → Quantity → Cart → Order Type → Payment → Discount → Tips → Save.
+- Bill-level discount: none / % / ₹ (never item-level). Discount saved on order, reflected in dashboard/reports/PDF.
+- Purchases separate from stock usage (Opening + Purchased − Used = Closing).
+- Reports with date presets + custom range; day-by-day, top items, portion breakdown, best/worst day.
+- CSV + PDF exports.
+- Editable Settings: restaurant brand, categories (menu / raw / expense), units, payment methods, reset transactions.
 
 ## Implemented (2026-08-21)
-- Branded dashboard with sales, expenses, tips, profit, order count, and dine-in/delivery split.
-- Exact 15 requested menu items preloaded with editable portion option data.
-- Quick-entry modals for sales (two line items), purchases, usage, other expenses, and menu items.
-- MongoDB persistence with safe JSON responses, order IDs, soft-deleted orders, and editable menu records.
-- Date-range reports, CSV sales/expense exports, and base64 receipt image attachment via Expo Image Picker.
-- Mobile bottom navigation and responsive dark-first visual system.
+- Emergent-managed Google Auth (blocking login, secure-store token, `/api/auth/session|me|logout`).
+- Full FastAPI auth guard on every business route + MongoDB TTL index on sessions.
+- Modular Expo frontend split into `src/screens/*` (Dashboard, Sales, SaleBuilder, RawMaterial, Expenses, Reports, Items, Settings, EntryModal).
+- Zero-typing POS with bill-level discount, tips, delivery customer/charge, split visual receipt summary.
+- Backend order model stores `subtotal`, `discount_amount`, `net_sales`, `grand_total`; dashboard + reports + PDF derive net sales from `net_sales`.
+- reportlab PDF export at `/api/export/report/pdf` with brand header, summary table, day-by-day table.
+- Stock summary endpoint `/api/stock`.
+- Settings API `GET/PUT /api/settings`, reset via `POST /api/settings/reset`.
+- Restaurant name/tagline/categories all editable and reflected in shell header + forms.
+
+## Data model (Mongo collections)
+- `menu_items`: {item_id, name, category, variant, options[{name,price}], quality_required, quality_options, active}
+- `orders`: {order_id, date, time, order_type, items[], tips, payment, customer, delivery_charge, discount_type, discount_value, subtotal, discount_amount, net_sales, grand_total, deleted}
+- `purchases`, `usage`, `expenses`, `settings`
+- `users`, `user_sessions` (TTL index on expires_at)
 
 ## Prioritized backlog
-- P0: Managed Google OAuth session exchange and authenticated settings screen.
-- P0: PDF report generation and native/mobile export sharing.
-- P1: Full menu edit/delete confirmation UI and sales edit/delete UI.
-- P1: Delivery customer fields, split payments, category filters, and pagination.
-- P2: Stock opening/closing balance dashboard and richer charts.
+- P1: Native mobile sharing of exported CSV/PDF (currently downloads on web only).
+- P2: Edit-order flow (currently soft-delete only).
+- P2: Split payment (Cash + UPI amounts).
+- P2: Charts library upgrade for month view.
 
 ## Next tasks
-1. Implement Emergent-managed Google auth end-to-end using secure session storage.
-2. Add PDF generation and share sheet for report exports.
-3. Finish edit/delete confirmation flows and category/date filters across lists.
+1. Sharing exports on iOS/Android via expo-sharing.
+2. Split payment fields on SaleBuilder.
+3. Editable order screen.

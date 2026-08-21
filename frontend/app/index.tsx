@@ -1,33 +1,150 @@
-import React, { useEffect, useState } from "react";
-import { Alert, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View, ActivityIndicator } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialCommunityIcons as Icon } from "@expo/vector-icons";
-import Constants from "expo-constants";
-import * as ImagePicker from "expo-image-picker";
-import { StatusBar } from "expo-status-bar";
+import { C } from "@/src/theme";
+import { api } from "@/src/api";
+import { useAuth } from "@/src/auth";
+import { s } from "@/src/screens/ui";
+import { Dashboard } from "@/src/screens/Dashboard";
+import { Sales } from "@/src/screens/Sales";
+import { SaleBuilder } from "@/src/screens/SaleBuilder";
+import { RawMaterial } from "@/src/screens/RawMaterial";
+import { Expenses } from "@/src/screens/Expenses";
+import { Reports } from "@/src/screens/Reports";
+import { Items } from "@/src/screens/Items";
+import { Settings } from "@/src/screens/Settings";
+import { EntryModal } from "@/src/screens/EntryModal";
 
-const API = `${Constants.expoConfig?.extra?.backendUrl || process.env.EXPO_PUBLIC_BACKEND_URL || ""}/api`;
-const C = { bg:"#12100E", card:"#1D1A16", raised:"#282420", text:"#F7F4F0", muted:"#C4BFB6", brand:"#D96B3E", green:"#77B58A", border:"#4A3E38", red:"#E77D7D" };
-const today=()=>new Date().toISOString().slice(0,10); const money=(n:number)=>`₹${Math.round(n||0).toLocaleString("en-IN")}`;
-async function api(path:string, options:any={}) { const r=await fetch(`${API}${path}`,{headers:{"Content-Type":"application/json",...(options.headers||{})},...options}); if(!r.ok) throw new Error((await r.json().catch(()=>({}))).detail||"Could not save this record"); return r.json(); }
+type Tab = "Dashboard" | "Sales" | "Stock" | "Expenses" | "Reports" | "Items" | "Settings";
 
-type Tab="Dashboard"|"Sales"|"Raw Material"|"Expenses"|"Reports"|"Items";
-export default function Index(){
- const [tab,setTab]=useState<Tab>("Dashboard"); const [dash,setDash]=useState<any>(null); const [menu,setMenu]=useState<any[]>([]); const [orders,setOrders]=useState<any[]>([]); const [purchases,setPurchases]=useState<any[]>([]); const [expenses,setExpenses]=useState<any[]>([]); const [loading,setLoading]=useState(true); const [modal,setModal]=useState<string|null>(null);
- const load=async()=>{setLoading(true);try{const [d,m,o,p,e]=await Promise.all([api(`/dashboard?date=${today()}`),api("/menu"),api("/orders"),api("/purchases"),api("/expenses")]);setDash(d);setMenu(m);setOrders(o);setPurchases(p);setExpenses(e)}catch(e:any){Alert.alert("Sync issue",e.message)}finally{setLoading(false)}};
- useEffect(()=>{load()},[]);
- const nav=[{n:"Dashboard",i:"view-dashboard-outline"},{n:"Sales",i:"receipt-text-outline"},{n:"Raw Material",i:"package-variant-closed"},{n:"Expenses",i:"cash-minus"},{n:"Reports",i:"chart-line"},{n:"Items",i:"silverware-fork-knife"}];
- return <SafeAreaView style={s.safe}><StatusBar style="light"/><View style={s.header}><View><Text style={s.brand}>AFT <Text style={s.brandLight}>· Apna Flavour Town</Text></Text><Text style={s.tagline}>स्वाद की नई दुनिया</Text></View><Pressable style={s.iconBtn} onPress={()=>Alert.alert("AFT sync","Your records are stored securely in the restaurant database.")}><Icon name="cloud-check-outline" size={22} color={C.green}/></Pressable></View>
- {loading?<View style={s.center}><ActivityIndicator color={C.brand} size="large"/><Text style={s.muted}>Loading your books…</Text></View>:<><View style={s.content}>{tab==="Dashboard"&&<Dashboard d={dash} onAdd={setModal}/>} {tab==="Sales"&&<Sales orders={orders} menu={menu} onAdd={()=>setModal("sale")} onRefresh={load}/>} {tab==="Raw Material"&&<Raw purchases={purchases} onAdd={()=>setModal("purchase")} onUsage={()=>setModal("usage")} onRefresh={load}/>} {tab==="Expenses"&&<Expenses data={expenses} onAdd={()=>setModal("expense")} onRefresh={load}/>} {tab==="Reports"&&<Reports/>} {tab==="Items"&&<Items menu={menu} onAdd={()=>setModal("item")} onRefresh={load}/>}</View><View style={s.nav}>{nav.map(x=><Pressable key={x.n} style={s.navItem} onPress={()=>setTab(x.n as Tab)}><Icon name={x.i as any} size={21} color={tab===x.n?C.brand:C.muted}/><Text style={[s.navText,tab===x.n&&{color:C.brand}]}>{x.n.replace("Raw Material","Stock")}</Text></Pressable>)}</View></>}
- <EntryModal type={modal} menu={menu} onClose={()=>setModal(null)} onSaved={()=>{setModal(null);load()}}/></SafeAreaView>
+const NAV: { n: Tab; i: any }[] = [
+  { n: "Dashboard", i: "view-dashboard-outline" },
+  { n: "Sales", i: "receipt-text-outline" },
+  { n: "Stock", i: "package-variant-closed" },
+  { n: "Expenses", i: "cash-minus" },
+  { n: "Reports", i: "chart-line" },
+  { n: "Items", i: "silverware-fork-knife" },
+  { n: "Settings", i: "cog-outline" },
+];
+
+function Toast({ msg, onClose }: any) {
+  useEffect(() => { if (msg) { const t = setTimeout(onClose, 3200); return () => clearTimeout(t); } }, [msg, onClose]);
+  if (!msg) return null;
+  return (
+    <View style={{ position: "absolute", bottom: 90, left: 20, right: 20, backgroundColor: C.card, borderRadius: 12, padding: 14, borderWidth: 1, borderColor: C.brand, flexDirection: "row", gap: 10, alignItems: "center" }}>
+      <Icon name="information-outline" size={18} color={C.brand} />
+      <Text style={{ color: C.text, flex: 1 }}>{msg}</Text>
+    </View>
+  );
 }
-function Dashboard({d,onAdd}:any){return <ScrollView showsVerticalScrollIndicator={false}><Text style={s.kicker}>TODAY · {new Date().toLocaleDateString("en-IN",{day:"2-digit",month:"short"})}</Text><Text style={s.h1}>Good morning, owner.</Text><Text style={s.muted}>Here’s how Apna Flavour Town is doing.</Text><View style={s.grid}>{[["Sales",d.sales,"cash-register"],["Net profit",d.profit,"trending-up"],["Orders",d.orders,"receipt"],["Tips",d.tips,"hand-coin"]].map(([l,v,i])=><View style={s.metric} key={l as string}><Icon name={i as any} size={19} color={C.brand}/><Text style={s.metricLabel}>{l}</Text><Text style={s.metricValue}>{l==="Orders"?v:money(v as number)}</Text></View>)}</View><View style={s.card}><Text style={s.cardTitle}>Sales split</Text><View style={s.split}><Text style={s.muted}>On table  <Text style={s.text}>{money(d.dine_in)}</Text></Text><Text style={s.muted}>Delivery  <Text style={s.text}>{money(d.delivery)}</Text></Text></View><View style={s.bar}><View style={[s.barFill,{width:`${d.sales?Math.max(8,d.dine_in/d.sales*100):8}%`} as any]}/></View></View><Text style={s.section}>QUICK ACTIONS</Text><View style={s.actions}><Quick icon="plus" label="New sale" onPress={()=>onAdd("sale")}/><Quick icon="package-variant" label="Stock purchase" onPress={()=>onAdd("purchase")}/><Quick icon="cash-minus" label="Other expense" onPress={()=>onAdd("expense")}/></View><View style={s.note}><Icon name="information-outline" size={19} color={C.brand}/><Text style={s.noteText}>Tips are tracked separately and never included in sales or profit.</Text></View></ScrollView>}
-function Quick({icon,label,onPress}:any){return <Pressable style={({pressed})=>[s.quick,pressed&&{opacity:.7}]} onPress={onPress}><Icon name={icon} size={22} color={C.brand}/><Text style={s.quickText}>{label}</Text></Pressable>}
-function Sales({orders,menu,onAdd,onRefresh}:any){const [q,setQ]=useState("");const rows=orders.filter((x:any)=>x.order_id?.toLowerCase().includes(q.toLowerCase()));return <ScrollView showsVerticalScrollIndicator={false}><Title title="Sales & orders" sub={`${orders.length} saved orders`} action="New sale" onAction={onAdd}/><TextInput style={s.search} placeholder="Search order ID" placeholderTextColor={C.muted} value={q} onChangeText={setQ}/>{rows.length===0?<Empty label="No orders yet"/>:rows.map((o:any)=><View style={s.row} key={o.order_id}><View style={s.rowIcon}><Icon name={o.order_type==="Home Delivery"?"moped":"table-furniture"} size={21} color={C.brand}/></View><View style={{flex:1}}><Text style={s.text}>{o.order_id}</Text><Text style={s.muted}>{o.order_type} · {o.date} · {o.payment}</Text><Text style={s.muted}>{o.items?.length} items · tips {money(o.tips)}</Text></View><Text style={s.amount}>{money(o.subtotal)}</Text></View>)}</ScrollView>}
-function Raw({purchases,onAdd,onUsage,onRefresh}:any){return <ScrollView showsVerticalScrollIndicator={false}><Title title="Raw materials" sub="Purchases are separate from usage" action="Add purchase" onAction={onAdd}/><Pressable style={s.secondaryBtn} onPress={onUsage}><Icon name="minus-circle-outline" size={18} color={C.brand}/><Text style={s.secondaryText}>Log stock usage</Text></Pressable>{purchases.length===0?<Empty label="No purchases recorded"/>:purchases.map((p:any)=><View style={s.row} key={p.record_id}><View style={s.rowIcon}><Icon name="package-variant" size={21} color={C.brand}/></View><View style={{flex:1}}><Text style={s.text}>{p.item}</Text><Text style={s.muted}>{p.quantity} {p.unit} · {p.date}</Text></View><Text style={s.amount}>{money(p.total)}</Text></View>)}</ScrollView>}
-function Expenses({data,onAdd}:any){return <ScrollView showsVerticalScrollIndicator={false}><Title title="Other expenses" sub="Keep non-food costs visible" action="Add expense" onAction={onAdd}/>{data.length===0?<Empty label="No other expenses recorded"/>:data.map((e:any)=><View style={s.row} key={e.record_id}><View style={s.rowIcon}><Icon name="cash-minus" size={21} color={C.brand}/></View><View style={{flex:1}}><Text style={s.text}>{e.description}</Text><Text style={s.muted}>{e.category} · {e.date} · {e.payment}</Text></View><Text style={s.amount}>{money(e.amount)}</Text></View>)}</ScrollView>}
-function Items({menu,onAdd}:any){return <ScrollView showsVerticalScrollIndicator={false}><Title title="Menu item master" sub={`${menu.filter((x:any)=>x.active).length} active items`} action="Add item" onAction={onAdd}/>{menu.map((m:any)=><View style={s.row} key={m.item_id}><View style={s.rowIcon}><Icon name="silverware-fork-knife" size={21} color={m.active?C.brand:C.muted}/></View><View style={{flex:1}}><Text style={s.text}>{m.name}</Text><Text style={s.muted}>{m.category} · {m.variant}</Text></View><View>{m.options.map((o:any)=><Text style={s.option} key={o.name}>{o.name} {money(o.price)}</Text>)}</View></View>)}</ScrollView>}
-function Reports(){const [r,setR]=useState<any>();const [start,setStart]=useState(`${today().slice(0,8)}01`);const [end,setEnd]=useState(today());const run=()=>api(`/reports?start=${start}&end=${end}`).then(setR);useEffect(()=>{api(`/reports?start=${start}&end=${end}`).then(setR)},[start,end]);return <ScrollView showsVerticalScrollIndicator={false}><Title title="Reports" sub="Choose any date range"/><View style={s.dateRow}><TextInput style={[s.input,s.dateInput]} placeholder="Start YYYY-MM-DD" placeholderTextColor={C.muted} value={start} onChangeText={setStart}/><TextInput style={[s.input,s.dateInput]} placeholder="End YYYY-MM-DD" placeholderTextColor={C.muted} value={end} onChangeText={setEnd}/><Pressable style={s.primaryBtn} onPress={run}><Icon name="filter" size={18} color="#fff"/></Pressable></View><View style={s.exportRow}><Pressable style={s.secondaryBtn} onPress={()=>{if(typeof window!=="undefined")window.location.href=`${API}/export/sales`}}><Text style={s.secondaryText}>Export sales CSV</Text></Pressable><Pressable style={s.secondaryBtn} onPress={()=>{if(typeof window!=="undefined")window.location.href=`${API}/export/expenses`}}><Text style={s.secondaryText}>Export expense CSV</Text></Pressable></View>{r&&<><View style={s.grid}>{[["Sales",r.sales],["Expenses",r.expenses],["Profit",r.profit],["Tips",r.tips]].map(([l,v])=><View style={s.metric} key={l as string}><Text style={s.metricLabel}>{l}</Text><Text style={s.metricValue}>{money(v as number)}</Text></View>)}</View><View style={s.card}><Text style={s.cardTitle}>Accounting rules</Text><Text style={s.muted}>Sales {money(r.sales)} · Raw material {money(r.raw)} · Other {money(r.other)}</Text><Text style={[s.profit,{color:C.green}]}>Net profit {money(r.profit)}</Text><Text style={s.muted}>Tips shown separately: {money(r.tips)} · {r.orders} orders</Text></View></>}</ScrollView>}
-function Title({title,sub,action,onAction}:any){return <View style={s.titleRow}><View><Text style={s.h2}>{title}</Text><Text style={s.muted}>{sub}</Text></View>{action&&<Pressable style={s.primaryBtn} onPress={onAction}><Icon name="plus" size={18} color="#fff"/><Text style={s.primaryText}>{action}</Text></Pressable>}</View>}
-function Empty({label}:any){return <View style={s.empty}><Icon name="text-box-outline" size={34} color={C.brand}/><Text style={s.muted}>{label}</Text></View>}
-function EntryModal({type,menu,onClose,onSaved}:any){const [form,setForm]=useState<any>({date:today(),time:new Date().toTimeString().slice(0,5),items:[]});useEffect(()=>setForm({date:today(),time:new Date().toTimeString().slice(0,5),items:[]}),[type]);if(!type)return null;const set=(k:string,v:any)=>setForm({...form,[k]:v});const save=async()=>{try{if(type==="purchase")await api("/purchases",{method:"POST",body:JSON.stringify({...form,quantity:+form.quantity,price:+form.price})});if(type==="usage")await api("/usage",{method:"POST",body:JSON.stringify({...form,quantity:+form.quantity})});if(type==="expense")await api("/expenses",{method:"POST",body:JSON.stringify({...form,amount:+form.amount})});if(type==="item")await api("/menu",{method:"POST",body:JSON.stringify({...form,options:[{name:form.option||"Single",price:+form.price}]})});if(type==="sale"){const make=(key:string)=>{const m=menu.find((x:any)=>x.name===form[key]);const option=m?.options?.[0];return m&&{item:form[key],portion:option?.name,quantity:+(form[key+"Qty"]||1),price:+(form[key+"Price"]||option?.price||0)}};await api("/orders",{method:"POST",body:JSON.stringify({...form,items:[make("item"),make("item2")].filter(Boolean),tips:+(form.tips||0)})})}onSaved()}catch(e:any){Alert.alert("Check entry",e.message)}};const pickReceipt=async()=>{const r=await ImagePicker.launchImageLibraryAsync({mediaTypes:["images" as any],base64:true,quality:.5});if(!r.canceled)set("receipt",`data:image/jpeg;base64,${r.assets[0].base64||""}`)};const field=(k:string,ph:string,keyboard:any="default")=><TextInput style={s.input} placeholder={ph} placeholderTextColor={C.muted} keyboardType={keyboard} value={String(form[k]??"")} onChangeText={v=>set(k,v)}/>;return <Modal transparent animationType="slide" visible onRequestClose={onClose}><View style={s.overlay}><View style={s.sheet}><View style={s.sheetHead}><Text style={s.h2}>{type==="sale"?"New sale":type==="purchase"?"Stock purchase":type==="usage"?"Stock usage":type==="expense"?"Other expense":"New menu item"}</Text><Pressable onPress={onClose}><Icon name="close" size={24} color={C.text}/></Pressable></View><ScrollView>{field("date","Date YYYY-MM-DD")}{type==="sale"&&<>{field("item","Item 1 name")}{field("itemQty","Item 1 quantity","numeric")}{field("itemPrice","Item 1 price (optional)","numeric")}{field("item2","Item 2 name (optional)")}{field("item2Qty","Item 2 quantity","numeric")}{field("item2Price","Item 2 price (optional)","numeric")}{field("tips","Tips","numeric")}{field("order_type","Order type: Dine-in / Home Delivery")}{field("payment","Payment: Cash / UPI")}</>}{type==="purchase"&&<>{field("item","Material name")}{field("quality","Quality / brand")}{field("quantity","Quantity","numeric")}{field("unit","Unit (Kg, Liter, Piece)")}{field("price","Price per unit","numeric")}{field("supplier","Supplier (optional)")}</>}{type==="usage"&&<>{field("item","Material name")}{field("quantity","Used quantity","numeric")}{field("note","Note")}</>}{type==="expense"&&<>{field("category","Category")}{field("description","Description")}{field("amount","Amount","numeric")}{field("payment","Payment: Cash / UPI")}{field("note","Note")}</>}{type==="expense"&&<Pressable style={s.secondaryBtn} onPress={pickReceipt}><Icon name="camera-outline" size={18} color={C.brand}/><Text style={s.secondaryText}>{form.receipt?"Receipt attached":"Attach receipt photo"}</Text></Pressable>}{type==="item"&&<>{field("name","Item name")}{field("category","Category")}{field("variant","Variant / quality")}{field("option","Portion (Half, Full, Single)")}{field("price","Price","numeric")}</>}<Pressable style={s.save} onPress={save}><Text style={s.primaryText}>Save record</Text></Pressable></ScrollView></View></View></Modal>}
-const s=StyleSheet.create({safe:{flex:1,backgroundColor:C.bg},header:{paddingHorizontal:20,paddingTop:12,paddingBottom:18,flexDirection:"row",justifyContent:"space-between",alignItems:"center"},brand:{fontSize:24,fontWeight:"800",color:C.brand},brandLight:{fontWeight:"500",color:C.text},tagline:{color:C.muted,fontSize:12,marginTop:2},iconBtn:{width:44,height:44,borderRadius:22,backgroundColor:C.card,alignItems:"center",justifyContent:"center"},content:{flex:1,paddingHorizontal:18},center:{flex:1,alignItems:"center",justifyContent:"center",gap:12},kicker:{color:C.brand,fontSize:12,fontWeight:"800",letterSpacing:1,marginTop:8},h1:{fontSize:30,fontWeight:"800",color:C.text,marginTop:6},h2:{fontSize:23,fontWeight:"800",color:C.text},muted:{color:C.muted,fontSize:13},text:{color:C.text,fontSize:15,fontWeight:"600"},section:{color:C.muted,fontSize:12,fontWeight:"800",letterSpacing:1,marginTop:26,marginBottom:10},grid:{flexDirection:"row",flexWrap:"wrap",gap:10,marginTop:22},metric:{backgroundColor:C.card,borderRadius:14,padding:14,width:"48%",minHeight:92,borderWidth:1,borderColor:C.border},metricLabel:{color:C.muted,fontSize:12,marginTop:9},metricValue:{color:C.text,fontSize:22,fontWeight:"800",marginTop:3},card:{backgroundColor:C.card,borderRadius:16,padding:17,marginTop:14,borderWidth:1,borderColor:C.border},cardTitle:{color:C.text,fontSize:16,fontWeight:"800",marginBottom:12},split:{flexDirection:"row",justifyContent:"space-between"},bar:{height:7,backgroundColor:C.raised,borderRadius:5,marginTop:15,overflow:"hidden"},barFill:{height:7,backgroundColor:C.brand,borderRadius:5},actions:{flexDirection:"row",gap:9},quick:{backgroundColor:C.card,borderRadius:14,padding:14,flex:1,minHeight:75,justifyContent:"space-between",borderWidth:1,borderColor:C.border},quickText:{color:C.text,fontSize:12,fontWeight:"700"},note:{flexDirection:"row",gap:9,backgroundColor:C.brand+"22",padding:14,borderRadius:12,marginTop:18,marginBottom:20},noteText:{color:C.muted,fontSize:12,flex:1},nav:{height:72,borderTopWidth:1,borderTopColor:C.border,backgroundColor:C.card,flexDirection:"row",justifyContent:"space-around",paddingTop:9},navItem:{alignItems:"center",width:"16%"},navText:{fontSize:9,color:C.muted,marginTop:5},titleRow:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginTop:10,marginBottom:18},primaryBtn:{backgroundColor:C.brand,borderRadius:10,paddingHorizontal:12,minHeight:44,flexDirection:"row",alignItems:"center",gap:4},primaryText:{color:"#fff",fontWeight:"800",fontSize:13},secondaryBtn:{borderWidth:1,borderColor:C.brand,borderRadius:10,padding:12,flexDirection:"row",alignItems:"center",gap:7,alignSelf:"flex-start",marginBottom:14},secondaryText:{color:C.brand,fontWeight:"800"},search:{backgroundColor:C.card,borderRadius:11,padding:13,color:C.text,marginBottom:12,borderWidth:1,borderColor:C.border},dateRow:{flexDirection:"row",gap:7,alignItems:"center"},dateInput:{flex:1,marginBottom:8,padding:10},exportRow:{flexDirection:"row",gap:8,flexWrap:"wrap",marginTop:4},row:{backgroundColor:C.card,borderRadius:13,padding:13,flexDirection:"row",alignItems:"center",gap:11,marginBottom:9,borderWidth:1,borderColor:C.border},rowIcon:{width:40,height:40,borderRadius:12,backgroundColor:C.brand+"22",alignItems:"center",justifyContent:"center"},amount:{color:C.text,fontWeight:"800"},option:{color:C.brand,fontSize:12,fontWeight:"800",marginBottom:2},empty:{alignItems:"center",justifyContent:"center",padding:50,gap:12},profit:{fontSize:24,fontWeight:"800",marginVertical:12},overlay:{flex:1,backgroundColor:"#00000099",justifyContent:"flex-end"},sheet:{backgroundColor:C.bg,borderTopLeftRadius:24,borderTopRightRadius:24,padding:20,maxHeight:"90%"},sheetHead:{flexDirection:"row",justifyContent:"space-between",alignItems:"center",marginBottom:16},input:{backgroundColor:C.card,borderWidth:1,borderColor:C.border,borderRadius:10,padding:14,color:C.text,marginBottom:10,minHeight:48},save:{backgroundColor:C.brand,borderRadius:11,minHeight:52,alignItems:"center",justifyContent:"center",marginTop:8,marginBottom:20}});
+
+export default function Index() {
+  const { user } = useAuth();
+  const [tab, setTab] = useState<Tab>("Dashboard");
+  const [dash, setDash] = useState<any>(null);
+  const [menu, setMenu] = useState<any[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [settings, setSettings] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const t = new Date().toISOString().slice(0, 10);
+      const [d, m, o, p, e, st] = await Promise.all([
+        api(`/dashboard?date=${t}`),
+        api("/menu"),
+        api("/orders"),
+        api("/purchases"),
+        api("/expenses"),
+        api("/settings"),
+      ]);
+      setDash(d); setMenu(m); setOrders(o); setPurchases(p); setExpenses(e); setSettings(st);
+    } catch (e: any) {
+      setToast(e.message || "Sync failed");
+    } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const onAdd = (kind: string) => setModal(kind);
+
+  if (!user) return null;
+
+  return (
+    <SafeAreaView style={s.safe} edges={["top", "bottom"]}>
+      <View style={s.header}>
+        <View>
+          <Text style={s.brand}>{settings?.restaurant_name?.startsWith("AFT") ? "AFT" : (settings?.restaurant_name || "AFT")}
+            <Text style={s.brandLight}>  ·  {settings?.restaurant_name?.replace(/^AFT\s*-?\s*/, "") || "Apna Flavour Town"}</Text>
+          </Text>
+          <Text style={s.tagline}>{settings?.tagline || "स्वाद की नई दुनिया"}</Text>
+        </View>
+        <Pressable style={s.iconBtn} onPress={() => setTab("Settings")} testID="header-settings">
+          {user.picture ? (
+            <Icon name="account-circle-outline" size={22} color={C.brand} />
+          ) : (
+            <Icon name="account-circle-outline" size={22} color={C.brand} />
+          )}
+        </Pressable>
+      </View>
+
+      {loading ? (
+        <View style={s.center}>
+          <ActivityIndicator color={C.brand} size="large" />
+          <Text style={s.muted}>Loading your books…</Text>
+        </View>
+      ) : (
+        <>
+          <View style={s.content}>
+            {tab === "Dashboard" && <Dashboard d={dash} onAdd={onAdd} userName={user.name} />}
+            {tab === "Sales" && <Sales orders={orders} menu={menu} onAdd={() => setModal("sale")} onRefresh={load} onError={setToast} />}
+            {tab === "Stock" && <RawMaterial purchases={purchases} onAdd={() => setModal("purchase")} onUsage={() => setModal("usage")} onRefresh={load} onError={setToast} />}
+            {tab === "Expenses" && <Expenses data={expenses} onAdd={() => setModal("expense")} onRefresh={load} onError={setToast} />}
+            {tab === "Reports" && <Reports onError={setToast} />}
+            {tab === "Items" && <Items menu={menu} onAdd={() => setModal("item")} onRefresh={load} onError={setToast} />}
+            {tab === "Settings" && <Settings onError={setToast} onRefresh={load} />}
+          </View>
+
+          <View style={s.nav}>
+            {NAV.map((x) => (
+              <Pressable
+                key={x.n}
+                style={s.navItem}
+                onPress={() => setTab(x.n)}
+                testID={`nav-${x.n.toLowerCase()}`}
+              >
+                <Icon name={x.i} size={20} color={tab === x.n ? C.brand : C.muted} />
+                <Text style={[s.navText, tab === x.n && { color: C.brand }]}>{x.n}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </>
+      )}
+
+      {modal === "sale" ? (
+        <SaleBuilder
+          menu={menu}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); load(); setToast("Order saved"); }}
+          onError={setToast}
+        />
+      ) : (
+        <EntryModal
+          type={modal}
+          settings={settings}
+          onClose={() => setModal(null)}
+          onSaved={() => { setModal(null); load(); setToast("Saved successfully"); }}
+          onError={setToast}
+        />
+      )}
+
+      <Toast msg={toast} onClose={() => setToast(null)} />
+    </SafeAreaView>
+  );
+}
